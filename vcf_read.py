@@ -46,7 +46,7 @@ def vcf_write_to_csv(vcf, vcf_path, vcf_enc) -> None:
 
 
 if __name__ == "__main__":
-    vcf_read(sys.argv[1])
+    vcf_read(sys.argv[1], sys.argv[2])
         
 """
 
