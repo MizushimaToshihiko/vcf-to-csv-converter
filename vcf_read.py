@@ -1,26 +1,36 @@
 # coding:utf-8
 import sys
+import chardet
 
 # usage:
-# python vcf_read.py [the filepath of the vcf to read] [encode of the vcf file]
+# python vcf_read.py [the filepath of the vcf to read]
 
-def vcf_read(vcf_path, vcf_enc="shift_jis") -> None:
+def vcf_read(vcf_path) -> None:
     """
     vcf_read reads the vcf file in 'vcf_path'.
     """
+    with open(vcf_path, mode="rb") as f:
+        vcf_b = f.read()
+        vcf_enc = chardet.detect(vcf_b)["encoding"]
+
     with open(vcf_path, mode="r", encoding=vcf_enc, errors="ignore") as f:
         vcf = f.read()
+
+    if vcf_enc == "CP932":
+        vcf_enc = "shift_jis"
+
     vcf_write_to_csv(vcf, vcf_path, vcf_enc)
+
 
 def vcf_write_to_csv(vcf, vcf_path, vcf_enc) -> None:
     """
-    vcf_write_to_csv make a csv file in the directory same as vcf_path, and write 'vcf'(string) to that csv file.
+    vcf_write_to_csv make a csv file in the directory same as vcf_path, 
+    and write 'vcf'(string) to that csv file.
     """
     csv_filename = vcf_path[:vcf_path.rfind(".")+1] + "csv"
     vcf_path = vcf_path[:vcf_path.rfind("\\")+1]
 
     with open(csv_filename, mode="w", encoding="shift_jis", errors="ignore") as f2:
-        # f2.write(vcf)
         VCF_ENC = vcf_enc.upper()
         title = f"VERSION,X-DCM-EXPORT,X-DCM-ACCOUNT;DOCOMO,N;CHARSET={VCF_ENC},SOUND;X-IRMC-N;CHARSET={VCF_ENC},X-DCM-SOUND-ORGINAL;X-IRMC-N;CHARSET={VCF_ENC},TEL;CELL,X-DCM-TEL-ORIGINAL;CELL,E,X-GNO,X-GN;CHARSET={VCF_ENC},X-DCM-GN-ORIGINAL;CHARSET={VCF_ENC},X-DCM-GROUP-ICONCOLOR,X-DCM-GROUP-ICON,EMAIL;CELL,X-DCM-EMAIL-ORIGINAL;CELL,X-DCM-RINGTONE,NOTE;CHARSET={VCF_ENC},TEL;WORK,X-DCM-TEL-ORIGINAL;WORK,ADR;CHARSET={VCF_ENC},X-DCM-POSTALCODE-ORIGINAL,TEL;CUSTOM,X-DCM-LABEL;CHARSET={VCF_ENC},X-DCM-TEL-ORIGINAL;CUSTOM,TEL;HOME,X-DCM-TEL-ORIGINAL;HOME,NICKNAME;DEFAULT;CHARSET={VCF_ENC},TEL;VOICE,X-DCM-TEL-ORIGINAL;VOICE,NOTE;ENCODING=QUOTED-PRINTABLE;CHARSET={VCF_ENC}" 
         title = title.split(",")
@@ -46,7 +56,7 @@ def vcf_write_to_csv(vcf, vcf_path, vcf_enc) -> None:
 
 
 if __name__ == "__main__":
-    vcf_read(sys.argv[1], sys.argv[2])
+    vcf_read(sys.argv[1])
         
 """
 
