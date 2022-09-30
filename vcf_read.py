@@ -4,6 +4,9 @@ import chardet
 
 # usage:
 # python vcf_read.py [the filepath of the vcf to read]
+def usage() -> None:
+    print("python vcf_read.py [the filepath of the vcf to read]")
+    return
 
 def vcf_read(vcf_path) -> None:
     """
@@ -32,7 +35,7 @@ def vcf_write_to_csv(vcf, vcf_path, vcf_enc) -> None:
 
     with open(csv_filename, mode="w", encoding="shift_jis", errors="ignore") as f2:
         VCF_ENC = vcf_enc.upper()
-        title = f"VERSION,X-DCM-EXPORT,X-DCM-ACCOUNT;DOCOMO,N;CHARSET={VCF_ENC},SOUND;X-IRMC-N;CHARSET={VCF_ENC},X-DCM-SOUND-ORGINAL;X-IRMC-N;CHARSET={VCF_ENC},TEL;CELL,X-DCM-TEL-ORIGINAL;CELL,E,X-GNO,X-GN;CHARSET={VCF_ENC},X-DCM-GN-ORIGINAL;CHARSET={VCF_ENC},X-DCM-GROUP-ICONCOLOR,X-DCM-GROUP-ICON,EMAIL;CELL,X-DCM-EMAIL-ORIGINAL;CELL,X-DCM-RINGTONE,NOTE;CHARSET={VCF_ENC},TEL;WORK,X-DCM-TEL-ORIGINAL;WORK,ADR;CHARSET={VCF_ENC},X-DCM-POSTALCODE-ORIGINAL,TEL;CUSTOM,X-DCM-LABEL;CHARSET={VCF_ENC},X-DCM-TEL-ORIGINAL;CUSTOM,TEL;HOME,X-DCM-TEL-ORIGINAL;HOME,NICKNAME;DEFAULT;CHARSET={VCF_ENC},TEL;VOICE,X-DCM-TEL-ORIGINAL;VOICE,NOTE;ENCODING=QUOTED-PRINTABLE;CHARSET={VCF_ENC}" 
+        title = f"VERSION,X-DCM-EXPORT,X-DCM-ACCOUNT;DOCOMO,N,N;CHARSET={VCF_ENC},SOUND;X-IRMC-N;CHARSET={VCF_ENC},X-DCM-SOUND-ORGINAL;X-IRMC-N;CHARSET={VCF_ENC},TEL;CELL,X-DCM-TEL-ORIGINAL;CELL,E,TEL;PREF;WORK,TELL;PREF;CELL,X-GNO,X-GN;CHARSET={VCF_ENC},X-DCM-GN-ORIGINAL;CHARSET={VCF_ENC},X-DCM-GROUP-ICONCOLOR,X-DCM-GROUP-ICON,EMAIL;CELL,X-DCM-EMAIL-ORIGINAL;CELL,X-DCM-RINGTONE,NOTE;CHARSET={VCF_ENC},TEL;WORK,X-DCM-TEL-ORIGINAL;WORK,ADR;CHARSET={VCF_ENC},X-DCM-POSTALCODE-ORIGINAL,TEL;CUSTOM,X-DCM-LABEL;CHARSET={VCF_ENC},X-DCM-TEL-ORIGINAL;CUSTOM,TEL;HOME,X-DCM-TEL-ORIGINAL;HOME,NICKNAME;DEFAULT;CHARSET={VCF_ENC},TEL;VOICE,X-DCM-TEL-ORIGINAL;VOICE,NOTE;ENCODING=QUOTED-PRINTABLE;CHARSET={VCF_ENC}" 
         title = title.split(",")
         print("title:", title)
         f2.write(",".join(title) + "\n") # 列名を書き込み
@@ -46,7 +49,7 @@ def vcf_write_to_csv(vcf, vcf_path, vcf_enc) -> None:
                 print("target:", target)
             for a in title:
                 if a in target.keys():
-                    # print(a,"あった")
+                    # print(a, "あった")
                     s += target[a].replace(";", "") + ","
                 else:
                     # print(a,"なかった")
@@ -56,7 +59,10 @@ def vcf_write_to_csv(vcf, vcf_path, vcf_enc) -> None:
 
 
 if __name__ == "__main__":
-    vcf_read(sys.argv[1])
+    if sys.argv[1] in ["-help", "-h", "help"]:
+        usage()
+    else:
+        vcf_read(sys.argv[1])
         
 """
 
