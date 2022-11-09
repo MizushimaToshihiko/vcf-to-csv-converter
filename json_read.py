@@ -10,6 +10,7 @@ import datetime
 
 
 date_f = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+jsext = "*.json"
 
 def json_read(json_path) -> None:
     '''
@@ -21,7 +22,7 @@ def json_read(json_path) -> None:
     csv_writer = csv.DictWriter(write_f, fieldnames=dic_title, delimiter=',',quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
     csv_writer.writeheader()
 
-    paths = glob.glob(json_path + "\\" + "*.json")
+    paths = glob.glob(json_path + "\\" + jsext)
 
     for path in paths:
         with open(path,  mode='r', encoding="utf-8", errors="ignore") as f:
@@ -80,7 +81,7 @@ def json_dump2(json_path) -> None:
     '''
     jsonの各要素のmax値を調査する
     '''
-    paths = glob.glob(json_path + "\\" + "*.json")
+    paths = glob.glob(json_path + "\\" + jsext)
     accountName_max = 0
     accountType_max = 0
     customRington_max = 0
@@ -150,7 +151,7 @@ def json_dump(json_path):
     '''
     jsonの内容をprintする
     '''
-    paths = glob.glob(json_path + "\\" + "*.json")
+    paths = glob.glob(json_path + "\\" + jsext)
     print(*paths, sep="\n")
     for path in paths:
         with open(path, mode="r", encoding="utf-8", errors="ignore") as f:
