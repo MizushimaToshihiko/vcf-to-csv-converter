@@ -16,7 +16,7 @@ def json_read(json_path) -> None:
     '''
     jsonの連絡先データを読込み、CSVに書き込む
     '''
-    dic_title = ["accountName", "accountType", "errorDisplayName", "email1", "email2", "event", "groupMembership", "im", "nickname", "note", "organization", "phone1", "phone2", "phone3", "phone4", "phone5", "relation", "sendToVoicemail", "sipAddress", "starred", "structuredName1", "structuredName2", "structuredName3", "structuredPostal", "website"]
+    dic_title = ["accountName", "accountType", "errorDisplayName", "email1", "email2", "event", "groupMembership", "im", "nickname", "note", "organization", "phone1", "phone2", "phone3", "phone4", "phone5", "relation", "sendToVoicemail", "sipAddress", "starred", "structuredName1", "structuredName2", "structuredName3", "structuredName4", "structuredName5", "structuredName6", "structuredName7", "structuredName8", "structuredName9", "structuredPostal", "website"]
 
     write_f = open(json_path + "\\" + date_f + "contacts.csv", mode="a", newline="")
     csv_writer = csv.DictWriter(write_f, fieldnames=dic_title, delimiter=',',quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
@@ -25,6 +25,7 @@ def json_read(json_path) -> None:
     paths = glob.glob(json_path + "\\" + jsext)
 
     for path in paths:
+        print(path)
         with open(path,  mode='r', encoding="utf-8", errors="ignore") as f:
             data = json.load(f)
 
@@ -52,9 +53,9 @@ def json_read(json_path) -> None:
                         continue
                     if dic_key == "structuredName1":
                         if j.get("structuredName") is not None and j.get("structuredName") != []:
-                            tickets.update({'structuredName1': j['structuredName']['data1']})
-                            tickets.update({'structuredName2': j['structuredName']['data7']})
-                            tickets.update({'structuredName3': j['structuredName']['data9']})
+                            for i in range(1, 10):
+                                if 'data'+str(i) in j['structuredName']:
+                                    tickets.update({'structuredName'+str(i): j['structuredName']['data'+str(i)]})
                         continue
                     if dic_key in ("structuredName2", "structuredName3"):
                         continue

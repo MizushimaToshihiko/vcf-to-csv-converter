@@ -22,10 +22,12 @@ python vcf_read.py [the filepath of the vcf to read]
 
 #### 使い方(vcf_read.pyと同様)
  - jsonファイルをローカルあるいはファイルサーバーに保存してから、下記コマンドを実行
+ ※ディレクトリのパスを指定します
  ```bash
-python json_read.py [the filepath of the vcf to read]
+python json_read.py [the directory path of the json files to read]
 ```
  - 上記をコマンドライン入力すると、jsonファイルと同じ場所に同名のcsvファイルができる
+ - 複数あるjsonファイルを集約して一つのCSVファイルにします
 
 ### 作者
 MizushimaToshihiko
@@ -34,5 +36,5 @@ MizushimaToshihiko
 MIT License
 
 ### 注意事項
- - このスクリプトは、スマートフォンの電話帳をエクスポートしたvcfファイルに対してのみ動作します
+ - このスクリプトは、スマートフォンの電話帳をエクスポートしたvcfファイル及びjsonファイルに対してのみ動作します
  - このスクリプトを使用することによって生じたいかなる損害についても、作者は一切の責任を負いません
