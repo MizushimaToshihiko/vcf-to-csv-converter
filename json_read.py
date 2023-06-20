@@ -16,66 +16,77 @@ def json_read(json_path) -> None:
     '''
     jsonの連絡先データを読込み、CSVに書き込む
     '''
-    dic_title = ["accountName", "accountType", "errorDisplayName", "email1", "email2", "event", "groupMembership", "im", "nickname", "note", "organization", "phone1", "phone2", "phone3", "phone4", "phone5", "relation", "sendToVoicemail", "sipAddress", "starred", "structuredName1", "structuredName2", "structuredName3", "structuredName4", "structuredName5", "structuredName6", "structuredName7", "structuredName8", "structuredName9", "structuredPostal", "website"]
+    dic_title = ["structuredName1", "structuredName2", "structuredName3", "structuredName4", "structuredName5", "structuredName6", "structuredName7", "structuredName8", "structuredName9", "phone1", "phone2", "phone3", "phone4", "phone5", "email1", "email2", "structuredPostal", "accountName", "accountType", "errorDisplayName", "event", "groupMembership", "im", "nickname", "note", "organization", "relation", "sendToVoicemail", "sipAddress", "starred",  "website"]
 
-    write_f = open(json_path + "\\" + date_f + "contacts.csv", mode="a", newline="")
-    csv_writer = csv.DictWriter(write_f, fieldnames=dic_title, delimiter=',',quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
-    csv_writer.writeheader()
+    with open(
+        json_path + "\\" + date_f + "contacts.csv",
+        mode="a",
+        newline="",
+        encoding="utf-8"
+        ) as write_f:
+        csv_writer = csv.DictWriter(
+            write_f, 
+            fieldnames=dic_title,
+            delimiter=',',
+            quotechar='"',
+            quoting=csv.QUOTE_NONNUMERIC
+            )
+        csv_writer.writeheader()
 
-    paths = glob.glob(json_path + "\\" + jsext)
+        paths = glob.glob(json_path + "\\" + jsext)
 
-    for path in paths:
-        print(path)
-        with open(path,  mode='r', encoding="utf-8", errors="ignore") as f:
-            data = json.load(f)
+        for path in paths:
+            print(path)
+            with open(path,  mode='r', encoding="utf-8", errors="ignore") as f:
+                data = json.load(f)
 
-            for j in data:
-                if j is None:
-                    continue
-                #
-                # Set 'tickets' Dictionary
-                #
-                tickets = {}
-                for dic_key in dic_title:
-                    if dic_key == "email1":
-                        if j.get("email") is not None and j.get("email") != [] :
-                            for i, email in enumerate(j["email"]):
-                                tickets.update({'email'+str(i+1):email['data1']})
+                for j in data:
+                    if j is None:
                         continue
-                    if dic_key == "email2":
-                        continue
-                    if dic_key == "phone1":
-                        if j.get("phone") is not None and j.get("phone") != []:
-                            for i, phone in enumerate(j['phone']):
-                                tickets.update({'phone'+str(i+1):phone['data1']})
-                        continue
-                    if dic_key in ["phone2", "phone3", "phone4", "phone5"]:
-                        continue
-                    if dic_key == "structuredName1":
-                        if j.get("structuredName") is not None and j.get("structuredName") != []:
-                            for i in range(1, 10):
-                                if 'data'+str(i) in j['structuredName']:
-                                    tickets.update({'structuredName'+str(i): j['structuredName']['data'+str(i)]})
-                        continue
-                    if dic_key in ("structuredName2", "structuredName3"):
-                        continue
-                    if dic_key == "nickname":
+                    #
+                    # Set 'tickets' Dictionary
+                    #
+                    tickets = {}
+                    for dic_key in dic_title:
+                        if dic_key == "email1":
+                            if j.get("email") is not None and j.get("email") != [] :
+                                for i, email in enumerate(j["email"]):
+                                    tickets.update({'email'+str(i+1):email['data1']})
+                            continue
+                        if dic_key == "email2":
+                            continue
+                        if dic_key == "phone1":
+                            if j.get("phone") is not None and j.get("phone") != []:
+                                for i, phone in enumerate(j['phone']):
+                                    tickets.update({'phone'+str(i+1):phone['data1']})
+                            continue
+                        if dic_key in ["phone2", "phone3", "phone4", "phone5"]:
+                            continue
+                        if dic_key == "structuredName1":
+                            if j.get("structuredName") is not None and j.get("structuredName") != []:
+                                for i in range(1, 10):
+                                    if 'data'+str(i) in j['structuredName']:
+                                        tickets.update(
+                                            {'structuredName'+str(i): j['structuredName']['data'+str(i)]}
+                                            )
+                            continue
+                        if dic_key in ("structuredName2", "structuredName3"):
+                            continue
+                        if dic_key == "nickname":
+                            if j.get(dic_key) is not None and j.get(dic_key) != []:
+                                tickets.update({dic_key: j[dic_key]["data1"]})
+                            continue
+                        if dic_key == "structuredPostal":
+                            if j.get(dic_key) is not None and j.get(dic_key) != []:
+                                tickets.update({dic_key: j[dic_key][0]["data1"]})
+                            continue
                         if j.get(dic_key) is not None and j.get(dic_key) != []:
-                            tickets.update({dic_key: j[dic_key]["data1"]})
-                        continue
-                    if dic_key == "structuredPostal":
-                        if j.get(dic_key) is not None and j.get(dic_key) != []:
-                            tickets.update({dic_key: j[dic_key][0]["data1"]})
-                        continue
-                    if j.get(dic_key) is not None and j.get(dic_key) != []:
-                        dic_val = j[dic_key]
-                        tickets.update({dic_key: dic_val})
-                #
-                # Write 'tickets' to the csv file
-                #
-                csv_writer.writerow(tickets)
-
-    write_f.close()
+                            dic_val = j[dic_key]
+                            tickets.update({dic_key: dic_val})
+                    #
+                    # Write 'tickets' to the csv file
+                    #
+                    csv_writer.writerow(tickets)
 
 
 def json_dump2(json_path) -> None:
