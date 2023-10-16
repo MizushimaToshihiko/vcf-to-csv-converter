@@ -1,6 +1,7 @@
 # coding:utf-8
 import sys
 import chardet
+import quopri
 
 # usage:
 # python vcf_read.py [the filepath of the vcf to read]
@@ -18,6 +19,8 @@ def vcf_read(vcf_path) -> None:
 
     with open(vcf_path, mode="r", encoding=vcf_enc, errors="ignore") as f:
         vcf = f.read()
+    
+    vcf = vcf.replace("=\n=", "=")
 
     if vcf_enc == "CP932":
         vcf_enc = "shift_jis"
@@ -35,7 +38,7 @@ def vcf_write_to_csv(vcf, vcf_path, vcf_enc) -> None:
 
     with open(csv_filename, mode="w", encoding="shift_jis", errors="ignore") as f2:
         VCF_ENC = vcf_enc.upper()
-        title = f"N,N;CHARSET={VCF_ENC},SOUND;X-IRMC-N;CHARSET={VCF_ENC},TEL;CELL,TEL;PREF;WORK,TEL;PREF;CELL,TEL;WORK,TEL;CUSTOM,TEL;CELL;WORK,TEL;HOME,TEL;VOICE,TEL;X-VOICE,EMAIL,EMAIL;CELL,EMAIL;WORK,EMAIL;PREF;CELL,EMAIL;PREF,VERSION,X-DCM-EXPORT,X-DCM-ACCOUNT;DOCOMO,X-DCM-TEL-ORIGINAL;CELL,X-DCM-EMAIL-ORIGINAL;CELL,X-DCM-RINGTONE,NOTE;CHARSET={VCF_ENC},X-DCM-TEL-ORIGINAL;WORK,ADR;CHARSET={VCF_ENC},X-DCM-POSTALCODE-ORIGINAL,X-DCM-SOUND-ORGINAL;X-IRMC-N;CHARSET={VCF_ENC},X-GNO,X-GN;CHARSET={VCF_ENC},E,X-DCM-GN-ORIGINAL;CHARSET={VCF_ENC},X-DCM-LABEL;CHARSET={VCF_ENC},X-DCM-TEL-ORIGINAL;CUSTOM,X-DCM-GROUP-ICONCOLOR,X-DCM-GROUP-ICON,X-DCM-TEL-ORIGINAL;HOME,NICKNAME;DEFAULT;CHARSET={VCF_ENC},X-DCM-TEL-ORIGINAL;VOICE,NOTE;ENCODING=QUOTED-PRINTABLE;CHARSET={VCF_ENC}"
+        title = f"N,N;CHARSET={VCF_ENC},N;CHARSET={VCF_ENC};ENCODING=QUOTED-PRINTABLE,FN;CHARSET={VCF_ENC};ENCODING=QUOTED-PRINTABLE,SOUND;X-IRMC-N;CHARSET={VCF_ENC},TEL;WORK;VOICE,TEL;PREF,TEL;HOME;VOICE,TEL;CELL,TEL;PREF;WORK,TEL;PREF;CELL,TEL;WORK,TEL;CUSTOM,TEL;CELL;WORK,TEL;HOME,TEL;VOICE,TEL;X-VOICE,EMAIL,EMAIL;CELL,EMAIL;WORK,EMAIL;PREF;CELL,EMAIL;PREF,VERSION,X-DCM-EXPORT,X-DCM-ACCOUNT;DOCOMO,X-DCM-TEL-ORIGINAL;CELL,X-DCM-EMAIL-ORIGINAL;CELL,X-DCM-RINGTONE,NOTE;CHARSET={VCF_ENC},X-DCM-TEL-ORIGINAL;WORK,ADR;CHARSET={VCF_ENC},X-DCM-POSTALCODE-ORIGINAL,X-DCM-SOUND-ORGINAL;X-IRMC-N;CHARSET={VCF_ENC},X-GNO,X-GN;CHARSET={VCF_ENC},E,X-DCM-GN-ORIGINAL;CHARSET={VCF_ENC},X-DCM-LABEL;CHARSET={VCF_ENC},X-DCM-TEL-ORIGINAL;CUSTOM,X-DCM-GROUP-ICONCOLOR,X-DCM-GROUP-ICON,X-DCM-TEL-ORIGINAL;HOME,NICKNAME;DEFAULT;CHARSET={VCF_ENC},X-DCM-TEL-ORIGINAL;VOICE,NOTE;ENCODING=QUOTED-PRINTABLE;CHARSET={VCF_ENC},BDAY,X-GN"
         title = title.split(",")
         print("title:", title)
         f2.write(",".join(title) + "\n") # 列名を書き込み
@@ -60,10 +63,11 @@ def vcf_write_to_csv(vcf, vcf_path, vcf_enc) -> None:
 
             for a in title:
                 if a in target.keys():
-                    # print(a, "あった")
+                    if "ENCODING=QUOTED-PRINTABLE" in a :
+                        pre_decoded = quopri.decodestring(target[a],header=False)
+                        target[a] = pre_decoded.decode("utf-8", "ignore")
                     s += target[a].replace(";", "") + ","
                 else:
-                    # print(a,"なかった")
                     s += ","
             vcf = vcf[end:]
             f2.write(s + "\n")
