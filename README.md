@@ -10,7 +10,7 @@
  ### vcf_read.py 
   - VCFデータの読み込み及びCSVファイルへの書き出し
 
- #### 使い方
+ #### vcf_read.pyの使い方
  - vcfファイルをローカルあるいはファイルサーバーに保存してから、下記コマンドを実行
 ```bash
 python vcf_read.py [the filepath of the vcf to read]
@@ -20,7 +20,7 @@ python vcf_read.py [the filepath of the vcf to read]
 ### json_read.py 
   - jsonデータの読み込み及びCSVファイルへの書き出し
 
-#### 使い方(vcf_read.pyと同様)
+#### json_read.pyの使い方(vcf_read.pyと同様)
  - jsonファイルをローカルあるいはファイルサーバーに保存してから、下記コマンドを実行
  ※ディレクトリのパスを指定します
  ```bash

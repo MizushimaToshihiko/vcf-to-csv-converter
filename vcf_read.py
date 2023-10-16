@@ -53,7 +53,7 @@ def vcf_write_to_csv(vcf, vcf_path, vcf_enc) -> None:
                 if len(x.split(":")) < 2:
                     continue
                 target_key = x.split(":")[0]
-                if target_key not in target.keys():
+                if target_key not in target:
                     target[target_key] = x.split(":")[1]
                 else:
                     target[target_key] += " / " + x.split(":")[1]
@@ -62,7 +62,7 @@ def vcf_write_to_csv(vcf, vcf_path, vcf_enc) -> None:
                 print("target:", target)
 
             for a in title:
-                if a in target.keys():
+                if a in target:
                     if "ENCODING=QUOTED-PRINTABLE" in a :
                         pre_decoded = quopri.decodestring(target[a],header=False)
                         target[a] = pre_decoded.decode("utf-8", "ignore")
@@ -85,6 +85,8 @@ if __name__ == "__main__":
 氏名・名称
     N,
     N;CHARSET={VCF_ENC},
+    N;CHARSET={VCF_ENC};ENCODING=QUOTED-PRINTABLE
+    FN;CHARSET={VCF_ENC};ENCODING=QUOTED-PRINTABLE
 ﾌﾘｶﾞﾅ
     SOUND;X-IRMC-N;CHARSET={VCF_ENC},
 電話番号
