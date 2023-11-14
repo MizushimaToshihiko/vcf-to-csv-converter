@@ -16,6 +16,7 @@ def vcf_read(vcf_path) -> None:
     with open(vcf_path, mode="rb") as f:
         vcf_b = f.read()
         vcf_enc = chardet.detect(vcf_b)["encoding"]
+        print(vcf_enc)
 
     with open(vcf_path, mode="r", encoding=vcf_enc, errors="ignore") as f:
         vcf = f.read()
@@ -24,6 +25,8 @@ def vcf_read(vcf_path) -> None:
 
     if vcf_enc == "CP932":
         vcf_enc = "shift_jis"
+    elif vcf_enc == "ascii":
+        vcf_enc = "UTF-8"
 
     vcf_write_to_csv(vcf, vcf_path, vcf_enc)
 
@@ -64,7 +67,7 @@ def vcf_write_to_csv(vcf, vcf_path, vcf_enc) -> None:
             for a in title:
                 if a in target:
                     if "ENCODING=QUOTED-PRINTABLE" in a :
-                        pre_decoded = quopri.decodestring(target[a],header=False)
+                        pre_decoded = quopri.decodestring(target[a], header=False)
                         target[a] = pre_decoded.decode("utf-8", "ignore")
                     s += target[a].replace(";", "") + ","
                 else:
