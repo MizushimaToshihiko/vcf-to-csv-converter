@@ -1,16 +1,32 @@
-# coding:utf-8
+"""
+VCF (vCard) ファイルを読み取り、CSVファイルに変換するモジュール。
+
+このモジュールは、VCFファイル内のコンタクト情報を解析し、対応するCSVファイルを生成します。また、VCFファイル内の写真データを抽出して画像ファイルとして保存します。
+
+使用方法:
+    python vcf_read.py [VCFファイルのパス]
+
+コマンドライン引数:
+    - [VCFファイルのパス]: 処理するVCFファイルのファイルパスを指定します。
+"""
 import sys
-import chardet
 import quopri
 import re
+import base64
+import os
+import chardet
 
-# usage:
-# python vcf_read.py [the filepath of the vcf to read]
 def usage() -> None:
+    """
+    このスクリプトの使用方法を標準出力に表示します。
+    """
     print("python vcf_read.py [the filepath of the vcf to read]")
 
 
 def extract_vcard_data(vcf_data):
+    """
+    VCFデータから最大のvCardエントリを抽出して解析します。
+    """
     vcards = re.findall(r'BEGIN:VCARD(.*?)END:VCARD', vcf_data, re.DOTALL)
     if not vcards:
         return None
@@ -23,25 +39,140 @@ def extract_vcard_data(vcf_data):
         if len(lines) > max_lines:
             max_lines = len(lines)
             max_vcard = vcard
-            print("searching max_lines:",max_lines)
+            print("searching max_lines:", max_lines)
 
-    print("max_lines:",max_lines)
+    print("max_lines:", max_lines)
     print("max_vcard:", max_vcard)
 
     if max_vcard:
         fn_match = re.search(r'FN:(.*)', max_vcard)
         if fn_match and fn_match.group(1).strip():
-            print("FN:",fn_match.group(1).strip())
+            print("FN:", fn_match.group(1).strip())
         else:
             n_match = re.search(r'N:(.*)', max_vcard)
             if n_match:
-                print("N:",n_match.group(1).strip())
+                print("N:", n_match.group(1).strip())
     return None
 
 
-def vcf_read(vcf_path : str, is_search : bool) -> None:
+def extract_titles(vcf_data):
     """
-    vcf_read reads the vcf file in 'vcf_path'.
+    VCFデータからすべてのユニークな項目名を抽出します。
+    """
+    vcards = re.findall(r'BEGIN:VCARD(.*?)END:VCARD', vcf_data, re.DOTALL)
+    titles = set()
+
+    for vcard in vcards:
+        lines = vcard.strip().split('\n')
+        for line in lines:
+            if ':' in line:
+                key = line.split(':')[0]
+                if key != "PHOTO":  # PHOTO項目は除外
+                    titles.add(key)
+
+    return sorted(titles)
+
+
+def save_photo(vcard, output_dir, index):
+    """
+    vCardデータから写真データを抽出し、画像ファイルとして保存します。
+    """
+    photo_match = re.search(r'PHOTO;ENCODING=BASE64;TYPE=(JPEG|PNG):(.+)', vcard, re.DOTALL)
+    if photo_match:
+        photo_type = photo_match.group(1).lower()
+        photo_data = photo_match.group(2).replace('\n', '')
+        photo_bytes = base64.b64decode(photo_data)
+
+        output_filename = os.path.join(output_dir, f"photo_{index}.{photo_type}")
+        with open(output_filename, 'wb') as photo_file:
+            photo_file.write(photo_bytes)
+        print(f"Saved photo to {output_filename}")
+
+
+def parse_vcard(vcard):
+    """
+    vCardデータを解析して、項目名とその値を辞書に格納します。
+
+    引数:
+        vcard (str): 処理するvCardデータの文字列。
+
+    戻り値:
+        dict: vCard項目名と値のペアを含む辞書。
+    """
+    target = {}
+    for x in vcard[len("BEGIN:VCARD")+1: len(vcard)-1].split("\n"):
+        if len(x.split(":")) < 2:
+            continue
+        target_key = x.split(":")[0]
+        target_value = x.split(":")[1]
+        if target_key in target:
+            target[target_key] += " / " + target_value
+        else:
+            target[target_key] = target_value
+    return target
+
+
+def encode_value(target, title):
+    """
+    辞書内の値をエンコードして安全にCSVに書き込めるようにします。
+
+    引数:
+        target (dict): vCard項目名と値のペアを含む辞書。
+        title (list): CSVの列名リスト。
+
+    戻り値:
+        str: エンコード済みのCSVの1行分のデータ。
+    """
+    s = ""
+    for a in title:
+        if a in target:
+            if "ENCODING=QUOTED-PRINTABLE" in a:
+                pre_decoded = quopri.decodestring(target[a], header=False)
+                target[a] = pre_decoded.decode("utf-8", "ignore")
+            s += target[a].replace(";", "").replace("\n", " ") + ","
+        else:
+            s += ","
+    return s
+
+
+def write_vcard_to_csv(vcf, output_dir, titles, csv_filename):
+    """
+    vCardデータを解析してCSVファイルに書き込みます。
+
+    引数:
+        vcf (str): VCFファイルの全データ。
+        output_dir (str): 出力ファイルのディレクトリ。
+        titles (list): CSVの列名リスト。
+        csv_filename (str): 書き込み先のCSVファイル名。
+
+    戻り値:
+        None
+    """
+    with open(csv_filename, mode="w", encoding="shift_jis", errors="ignore") as f2:
+        f2.write(",".join(titles) + "\n")  # 列名を書き込み
+
+        index = 1
+        while len(vcf) > 9:  #
+            begin = vcf.find("BEGIN:VCARD")
+            end = vcf.find("END:VCARD") + 1
+            vcard = vcf[begin:end]
+
+            target = parse_vcard(vcard)
+            save_photo(vcard, output_dir, index)
+            index += 1
+
+            s = encode_value(target, titles)
+            vcf = vcf[end:]
+            f2.write(s + "\n")
+
+
+def vcf_read(vcf_path: str, is_search: bool) -> None:
+    """
+    VCFファイルを読み込み、解析してCSVファイルを生成します。
+
+    引数:
+        vcf_path (str): 読み込むVCFファイルのパス。
+        is_search (bool): 最大のvCardエントリを検索するかどうかを指定。
     """
     with open(vcf_path, mode="rb") as f:
         vcf_b = f.read()
@@ -50,63 +181,16 @@ def vcf_read(vcf_path : str, is_search : bool) -> None:
 
     with open(vcf_path, mode="r", encoding=vcf_enc, errors="ignore") as f:
         vcf = f.read()
-    
-    vcf = vcf.replace("=\n=", "=")
 
-    if vcf_enc == "CP932":
-        vcf_enc = "shift_jis"
-    elif vcf_enc == "ascii":
-        vcf_enc = "UTF-8"
+    vcf = vcf.replace("=\n=", "=")
 
     if is_search:
         extract_vcard_data(vcf)
     else:
-        vcf_write_to_csv(vcf, vcf_path, vcf_enc)
-
-
-def vcf_write_to_csv(vcf, vcf_path, vcf_enc) -> None:
-    """
-    vcf_write_to_csv make a csv file in the directory same as vcf_path, 
-    and write 'vcf'(string) to that csv file.
-    """
-    csv_filename = vcf_path[:vcf_path.rfind(".")+1] + "csv"
-    vcf_path = vcf_path[:vcf_path.rfind("\\")+1]
-
-    with open(csv_filename, mode="w", encoding="shift_jis", errors="ignore") as f2:
-        VCF_ENC = vcf_enc.upper()
-        title = f"FN,N,N;CHARSET={VCF_ENC},N;CHARSET={VCF_ENC};ENCODING=QUOTED-PRINTABLE,FN;CHARSET={VCF_ENC};ENCODING=QUOTED-PRINTABLE,X-PHONETIC-LAST-NAME,SOUND;X-IRMC-N;CHARSET={VCF_ENC};ENCODING=QUOTED-PRINTABLE,SOUND;X-IRMC-N;CHARSET={VCF_ENC},TEL,TEL;WORK;VOICE,TEL;TYPE=CELL,TEL;PREF,TEL;HOME;VOICE,TEL;CELL,TEL;PREF;WORK,TEL;PREF;CELL,TEL;WORK,TEL;CUSTOM,TEL;CELL;WORK,TEL;HOME,TEL;VOICE,TEL;X-VOICE,item1.TEL,item2.TEL,item3.TEL,item4.TEL,item5.TEL,item6.TEL,item7.TEL,EMAIL,EMAIL;CELL,EMAIL;WORK,EMAIL;PREF;CELL,EMAIL;PREF,EMAIL;OTHER,EMAIL;TYPE=INTERNET;TYPE=WORK,ADR;TYPE=WORK,ADR;WORK;CHARSET={VCF_ENC},ORG;CHARSET={VCF_ENC},item1.ORG,item2.ORG,item3.ORG,item4.ORG,item5.ORG,item6.ORG,item7.ORG,item1.TITLE,item2.TITLE,item3.TITLE,item4.TITLE,item5.TITLE,item6.TITLE,item7.TITLE,item1.URL,item2.URL,item3.URL,item4.URL,item5.URL,item6.URL,item7.URL,VERSION,X-DCM-EXPORT,X-DCM-ACCOUNT;DOCOMO,X-DCM-TEL-ORIGINAL;CELL,X-DCM-EMAIL-ORIGINAL;CELL,X-DCM-RINGTONE,NOTE;CHARSET={VCF_ENC},X-DCM-TEL-ORIGINAL;WORK,ADR;CHARSET={VCF_ENC},X-DCM-POSTALCODE-ORIGINAL,X-DCM-SOUND-ORGINAL;X-IRMC-N;CHARSET={VCF_ENC},X-GNO,X-GN;CHARSET={VCF_ENC},E,X-DCM-GN-ORIGINAL;CHARSET={VCF_ENC},X-DCM-LABEL;CHARSET={VCF_ENC},X-DCM-TEL-ORIGINAL;CUSTOM,X-DCM-GROUP-ICONCOLOR,X-DCM-GROUP-ICON,X-DCM-TEL-ORIGINAL;HOME,NICKNAME;DEFAULT;CHARSET={VCF_ENC},X-DCM-TEL-ORIGINAL;VOICE,NOTE;ENCODING=QUOTED-PRINTABLE;CHARSET={VCF_ENC},BDAY,X-GN,NICKNAME,X-PHONETIC-FIRST-NAME,X-PHONETIC-LAST-NAME"
-        title = title.split(",")
-        print("title:", title)
-        f2.write(",".join(title) + "\n") # 列名を書き込み
-
-        while len(vcf) > 9: #
-            s = "" # f2に書き込むデータ（1行分）
-            begin = vcf.find("BEGIN:VCARD")
-            end = vcf.find("END:VCARD")+1
-            
-            target = {}
-            for x in vcf[begin + len("BEGIN:VCARD") + 1: end - 2].split("\n"):
-                if len(x.split(":")) < 2:
-                    continue
-                target_key = x.split(":")[0]
-                if target_key not in target:
-                    target[target_key] = x.split(":")[1]
-                else:
-                    target[target_key] += " / " + x.split(":")[1]
-
-            if begin == 0:
-                print("target:", target)
-
-            for a in title:
-                if a in target:
-                    if "ENCODING=QUOTED-PRINTABLE" in a :
-                        pre_decoded = quopri.decodestring(target[a], header=False)
-                        target[a] = pre_decoded.decode("utf-8", "ignore")
-                    s += target[a].replace(";", "") + ","
-                else:
-                    s += ","
-            vcf = vcf[end:]
-            f2.write(s + "\n")
+        titles = extract_titles(vcf)
+        csv_filename = vcf_path[:vcf_path.rfind(".") + 1] + "csv"
+        output_dir = os.path.dirname(csv_filename)
+        write_vcard_to_csv(vcf, output_dir, titles, csv_filename)
 
 
 if __name__ == "__main__":
@@ -116,102 +200,3 @@ if __name__ == "__main__":
         vcf_read(sys.argv[2], True)
     else:
         vcf_read(sys.argv[1], False)
-        
-"""
-
-各データ項目について
-氏名・名称
-    FN,
-    N,
-    N;CHARSET={VCF_ENC},
-    N;CHARSET={VCF_ENC};ENCODING=QUOTED-PRINTABLE
-    FN;CHARSET={VCF_ENC};ENCODING=QUOTED-PRINTABLE
-ﾌﾘｶﾞﾅ
-    X-PHONETIC-LAST-NAME
-    SOUND;X-IRMC-N;CHARSET={VCF_ENC},
-    SOUND;X-IRMC-N;CHARSET={VCF_ENC};ENCODING=QUOTED-PRINTABLE
-電話番号
-    TEL;TYPE=CELL,
-    TEL;CELL,
-    TEL;PREF;WORK,
-    TEL;PREF;CELL,
-    TEL;WORK,
-    TEL;CUSTOM,
-    TEL;CELL;WORK,
-    TEL;HOME,
-    TEL;VOICE,
-    TEL;X-VOICE,
-    item1.TEL,
-    item2.TEL,
-    item3.TEL,
-    item4.TEL,
-    item5.TEL,
-    item6.TEL,
-    item7.TEL,
-emailｱﾄﾞﾚｽ
-    EMAIL,
-    EMAIL;CELL,
-    EMAIL;WORK,
-    EMAIL;PREF;CELL,
-    EMAIL;PREF,
-    EMAIL;OTHER,
-    EMAIL;TYPE=INTERNET;TYPE=WORK,
-住所
-    ADR;TYPE=WORK
-    ADR;WORK
-所属会社
-    ORG,
-    item1.ORG,
-    item2.ORG,
-    item3.ORG,
-    item4.ORG,
-    item5.ORG,
-    item6.ORG,
-    item7.ORG,
-所属部署
-    item1.TITLE,
-    item2.TITLE,
-    item3.TITLE,
-    item4.TITLE,
-    item5.TITLE,
-    item6.TITLE,
-    item7.TITLE,
-URL
-    item1.URL,
-    item2.URL,
-    item3.URL,
-    item4.URL,
-    item5.URL,
-    item6.URL,
-    item7.URL,
-不要と思われる部分
-    VERSION,
-    X-DCM-EXPORT,
-    X-DCM-ACCOUNT;DOCOMO,
-    X-DCM-TEL-ORIGINAL;CELL,
-    X-DCM-EMAIL-ORIGINAL;CELL,
-    X-DCM-RINGTONE,
-    NOTE;CHARSET={VCF_ENC},
-    X-DCM-TEL-ORIGINAL;WORK,
-    ADR;CHARSET={VCF_ENC},
-    X-DCM-POSTALCODE-ORIGINAL,
-    X-DCM-SOUND-ORGINAL;X-IRMC-N;CHARSET={VCF_ENC},
-    X-GNO,
-    X-GN;CHARSET={VCF_ENC},
-    E,
-    X-DCM-GN-ORIGINAL;CHARSET={VCF_ENC},
-    X-DCM-LABEL;CHARSET={VCF_ENC},
-    X-DCM-TEL-ORIGINAL;CUSTOM,
-    X-DCM-GROUP-ICONCOLOR,
-    X-DCM-GROUP-ICON,
-    X-DCM-TEL-ORIGINAL;HOME,
-    NICKNAME;DEFAULT;CHARSET={VCF_ENC},
-    X-DCM-TEL-ORIGINAL;VOICE,
-    NOTE;ENCODING=QUOTED-PRINTABLE;CHARSET={VCF_ENC}
-    NICKNAME
-    X-PHONETIC-FIRST-NAME
-    X-PHONETIC-LAST-NAME
-    item1.X-ABLabel
-
-
-"""
